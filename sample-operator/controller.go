@@ -23,7 +23,7 @@ package main
 import (
 	"fmt"
 
-	opkit "github.com/rook/operator-kit"
+	opkit "github.com/kastenhq/operator-kit"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )

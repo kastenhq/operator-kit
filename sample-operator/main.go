@@ -28,14 +28,14 @@ import (
 	"time"
 
 	"github.com/coreos/pkg/capnslog"
-	opkit "github.com/rook/operator-kit"
+	opkit "github.com/kastenhq/operator-kit"
 	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-var logger = capnslog.NewPackageLogger("github.com/rook/operator-kit", "sample")
+var logger = capnslog.NewPackageLogger("github.com/kastenhq/operator-kit", "sample")
 
 func main() {
 	logger.Infof("Getting kubernetes context")
