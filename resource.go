@@ -24,12 +24,10 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/extensions/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	errorsUtil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/util/version"
@@ -76,33 +74,20 @@ func CreateCustomResources(context Context, resources []CustomResource) error {
 	}
 	kubeVersion := version.MustParseSemantic(serverVersion.GitVersion)
 
+	if !kubeVersion.AtLeast(version.MustParseSemantic(serverVersionV170)) {
+		return fmt.Errorf("Kubernetes versions less than 1.7.0 not supported")
+	}
 	var lastErr error
-	if kubeVersion.AtLeast(version.MustParseSemantic(serverVersionV170)) {
-		for _, resource := range resources {
-			err = createCRD(context, resource)
-			if err != nil {
-				lastErr = err
-			}
+	for _, resource := range resources {
+		err = createCRD(context, resource)
+		if err != nil {
+			lastErr = err
 		}
+	}
 
-		for _, resource := range resources {
-			if err := waitForCRDInit(context, resource); err != nil {
-				lastErr = err
-			}
-		}
-	} else {
-		// Create and wait for TPR resources
-		for _, resource := range resources {
-			err = createTPR(context, resource)
-			if err != nil {
-				lastErr = err
-			}
-		}
-
-		for _, resource := range resources {
-			if err := waitForTPRInit(context, resource); err != nil {
-				lastErr = err
-			}
+	for _, resource := range resources {
+		if err := waitForCRDInit(context, resource); err != nil {
+			lastErr = err
 		}
 	}
 	return lastErr
@@ -156,51 +141,4 @@ func waitForCRDInit(context Context, resource CustomResource) error {
 		}
 		return false, nil
 	})
-}
-
-func createTPR(context Context, resource CustomResource) error {
-	tprName := fmt.Sprintf("%s.%s", resource.Name, resource.Group)
-	tpr := &v1beta1.ThirdPartyResource{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: tprName,
-		},
-		Versions: []v1beta1.APIVersion{
-			{Name: resource.Version},
-		},
-		Description: fmt.Sprintf("ThirdPartyResource for %s", resource.Name),
-	}
-	_, err := context.Clientset.ExtensionsV1beta1().ThirdPartyResources().Create(tpr)
-	if err != nil {
-		if !errors.IsAlreadyExists(err) {
-			return fmt.Errorf("failed to create %s TPR. %+v", resource.Name, err)
-		}
-	}
-	return nil
-}
-
-func waitForTPRInit(context Context, resource CustomResource) error {
-	// wait for TPR being established
-	restcli := context.Clientset.CoreV1().RESTClient()
-	uri := fmt.Sprintf("apis/%s/%s/%s", resource.Group, resource.Version, resource.Plural)
-	tprName := fmt.Sprintf("%s.%s", resource.Name, resource.Group)
-
-	err := wait.Poll(context.Interval, context.Timeout, func() (bool, error) {
-		_, err := restcli.Get().RequestURI(uri).DoRaw()
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-
-	})
-	if err != nil {
-		deleteErr := context.Clientset.ExtensionsV1beta1().ThirdPartyResources().Delete(tprName, nil)
-		if deleteErr != nil {
-			return errorsUtil.NewAggregate([]error{err, deleteErr})
-		}
-		return err
-	}
-	return nil
 }
