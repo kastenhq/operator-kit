@@ -26,10 +26,6 @@ required = ["k8s.io/code-generator/cmd/client-gen"]
   name = "github.com/stretchr/testify"
 
 [[constraint]]
-  name = "k8s.io/kubernetes"
-  version = "=v1.8.2"
-
-[[constraint]]
   name = "k8s.io/api"
   version = "kubernetes-1.8.2"
 
@@ -39,10 +35,6 @@ required = ["k8s.io/code-generator/cmd/client-gen"]
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.8.2"
-
-[[constraint]]
-  name = "k8s.io/apiserver"
   version = "kubernetes-1.8.2"
 
 [[constraint]]

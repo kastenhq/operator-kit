@@ -24,13 +24,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Masterminds/semver"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/util/version"
 )
 
 // CustomResource is for creating a Kubernetes TPR/CRD
@@ -72,9 +72,9 @@ func CreateCustomResources(context Context, resources []CustomResource) error {
 	if err != nil {
 		return fmt.Errorf("Error getting server version: %v", err)
 	}
-	kubeVersion := version.MustParseSemantic(serverVersion.GitVersion)
+	kubeVersion := semver.MustParse(serverVersion.GitVersion)
 
-	if !kubeVersion.AtLeast(version.MustParseSemantic(serverVersionV170)) {
+	if kubeVersion.LessThan(semver.MustParse(serverVersionV170)) {
 		return fmt.Errorf("Kubernetes versions less than 1.7.0 not supported")
 	}
 	var lastErr error
